@@ -1,0 +1,11 @@
+CXXFLAGS = -Wall -std=c++14 -O3
+LIBS = -lgmpxx -lgmp
+
+CompleteGraph3Cycles: CompleteGraph3Cycles.o mpImpl.o
+	$(CXX) CompleteGraph3Cycles.o mpImpl.o $(CXXFLAGS) $(LIBS) -o $@
+
+CompleteGraph3Cycles.o: CompleteGraph3Cycles.cpp Matrix.h MPList.h
+	$(CXX) -c CompleteGraph3Cycles.cpp $(CXXFLAGS)
+
+mpImpl.o: mpImpl.h mpImpl.cpp
+	make

@@ -1,0 +1,32 @@
+function [sum] = traceAlgorithm(A)
+    A = vpa(A);
+    [n,~] = size(A);
+    I = eye(n);
+    A2 = A*A;
+    A3 = A2*A;
+    A4 = A3*A;
+    A5 = A4*A;
+    A_2 = A.*A;
+    A_3 = A_2.*A;
+    A_4 = A_3.*A;
+    A_5 = A_4.*A;
+    D2 = A2.*I;
+    D3 = A3.*I;
+    D4 = A4.*I;
+    D5 = A5.*I;
+    
+    sum = 2*trace(A*A_3*A_3);
+    sum = sum + .5*trace(A*(A2.*A2.*A2));
+    sum = sum + 2*trace(A2*A_5);
+    sum = sum - .5*trace(D3.*D4);
+    sum = sum - trace(D3.*(A_2)^2.*I);
+    sum = sum - 4*trace(A2*D2*A_3);
+    sum = sum - .5*trace(A*D2*A*A_3);
+    sum = sum + trace(D3.*D2.*D2);
+    sum = sum - 2*trace(((A2.*A_2)*A_2)*A);
+    sum = sum + .5*trace(A2*D2*A*D2);
+    sum = sum + 1.5*trace((A3.*A2)*A_2);
+    sum = sum + .5*trace(A*D3*A*D2);
+    sum = sum + .5*trace(A4*A_3);
+    sum = sum - .5*trace(D5*A2);
+end

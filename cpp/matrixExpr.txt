@@ -1,0 +1,9 @@
+M*d(M*M)*M*(M@M@M)
+
+M*d(M*M*(M@M@M))*M
+
+M*(M@M@M)*M*M*M
+
+M*((M*M*M)@(M@M))*M
+
+M*M*d(M*M)*M*M*M

@@ -1,0 +1,10 @@
+// this is a comment
+M*d(M_2)*M*M3
+
+M*d(M_2*M3)*M
+
+M*M3*M_3
+
+M*(M_3@M2)*M
+
+M_2*d(M_2)*M_3

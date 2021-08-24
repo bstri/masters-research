@@ -1,0 +1,44 @@
+function [sum] = traceAlgorithm2(A)
+    A = vpa(A);
+    [n,~] = size(A);
+    I = eye(n);
+    A2 = A*A;
+    A3 = A2*A;
+    A6 = A3^2;
+    A_2 = A.*A;
+    A_3 = A_2.*A;
+    D2 = A2.*I;
+    D3 = A3.*I;
+    D4 = A2^2.*I;
+    
+    t = trace(D2.*D2.*D2);
+    disp(t);
+    sum = t/3;
+    t = trace(A_3*A3);
+    disp(t);
+    sum = sum + t/2;
+    t = trace(D2.*((A_2*A_2).*I));
+    disp(t);
+    sum = sum - t;
+    t = trace(A_3*A_3);
+    disp(t);
+    sum = sum + t/3;
+    t = trace(D2.*((A*D2*A).*I));
+    disp(t);
+    sum = sum + t/4;
+    t = trace(A_2*A_2*A_2);
+    disp(t);
+    sum = sum - t/3;
+    t = trace((A2.*A2)*A_2);
+    disp(t);
+    sum = sum + 3*t/4;
+    t = trace(D3.*D3);
+    disp(t);
+    sum = sum - t/4;
+    t = trace(D2.*D4);
+    disp(t);
+    sum = sum - t/2;
+    t = trace(A6);
+    disp(t);
+    sum = sum + t/12;
+end
