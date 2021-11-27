@@ -230,23 +230,26 @@ public:
 		return K;
 	}
 
-	static Matrix<mpq_t> ToRationalMatrix(const Matrix<mpz_t>& src) {
-		Matrix<mpq_t> Q(src.Rows, src.Columns);
-		for (int r = 0; r < Q.Rows; r++) {
-			for (int c = 0; c < Q.Columns; c++) {
-				mpImpl::to_mpq(Q.Index(r,c), src.Index(r,c));
+	void ToRationalMatrix(Matrix<mpz_t>& out) const {
+		for (int r = 0; r < out.Rows; r++) {
+			for (int c = 0; c < out.Columns; c++) {
+				mpImpl::to_mpq(out.Index(r,c), this->Index(r,c));
 			}
 		}
-		return Q;
 	}
-	static Matrix<mpq_t> ToRationalMatrix(const Matrix<mpq_t>& src) {
-		Matrix<mpq_t> Q(src.Rows, src.Columns);
-		for (int r = 0; r < Q.Rows; r++) {
-			for (int c = 0; c < Q.Columns; c++) {
-				mpImpl::to_mpq(Q.Index(r,c), src.Index(r,c));
+	void ToRationalMatrix(Matrix<mpq_t>& out) const {
+		for (int r = 0; r < out.Rows; r++) {
+			for (int c = 0; c < out.Columns; c++) {
+				mpImpl::to_mpq(out.Index(r,c), this->Index(r,c));
 			}
 		}
-		return Q;
+	}
+	void ToRationalMatrix(Matrix<float>& out) const {
+		for (int r = 0; r < out.Rows; r++) {
+			for (int c = 0; c < out.Columns; c++) {
+				mpImpl::to_float(out.Index(r,c), this->Index(r,c));
+			}
+		}
 	}
 
 	// Overload assignment operator
@@ -317,38 +320,56 @@ public:
 		}
 	}
 
-	void Determinant(mpq_t& det) const {
-		Matrix<mpq_t> Q = this->ToRationalMatrix(*this);
-		mpq_set_ui(det, 1, 1);
-		mpq_t zero, coefficient, sub;
-		mpq_inits(zero, coefficient, sub, NULL);
-		for (int r = 0; r < Q.Rows - 1; r++) {
+	// T is expected to be float or mpq_t type
+	// If matrix is singular, returnEarly will stop this method early
+	static void RowEchelonForm(Matrix<T>& Q, bool returnEarly){
+		T zero, coefficient, sub;
+		mpImpl::init(zero);
+		mpImpl::init(coefficient);
+		mpImpl::init(sub);
+		int row = 0;
+		for (int c = 0; c < Q.Columns; c++) {
 			// find first non-zero pivot and swap row with current row
-			// for (int r2 = r; r2 < Q.Rows; r2++) {
-			// 	if (mpq_cmp(Q.Index(r2, r), zero) != 0) {
-			// 		if (r2 == r)
-			// 			break;
-			// 		// swap row r2 with row r
-			// 		for (int c = r; c < Q.Columns; c++) {
-			// 			mpq_swap(Q.Index(r2, c), Q.Index(r, c));
-			// 		}
-			// 	}
-			// }
-
-			mpq_mul(det, det, Q.Index(r, r));
-			if (mpq_cmp(det, zero) != 0)
-				return; // determinant is 0
-
-			// perform row reduction
-			for (int r2 = r + 1; r2 < Q.Rows; r2++) {
-				mpq_div(coefficient, Q.Index(r2, r), Q.Index(r, r));
-				for (int c = r; c < Q.Columns; c++) {
-					mpq_mul(sub, coefficient, Q.Index(r, c));
-					mpq_sub(Q.Index(r2, c), Q.Index(r2, c), sub);
+			bool noNonzero = true;
+			for (int r = row; r < Q.Rows; r++) {
+				if (mpImpl::cmp(Q.Index(r, c), zero) != 0) {
+					if (r == row)
+						break;
+					// swap row r with row row
+					for (int c2 = c; c2 < Q.Columns; c2++) {
+						mpImpl::swap(Q.Index(row, c2), Q.Index(r, c2));
+					}
+					noNonzero = false;
+					break;
 				}
 			}
+			if (noNonzero) {
+				if (returnEarly)
+					return;
+				continue;
+			}
+			// perform row reduction
+			for (int r = row + 1; r < Q.Rows; r++) {
+				mpImpl::div(coefficient, Q.Index(r, c), Q.Index(row, c));
+				for (int c2 = c; c2 < Q.Columns; c2++) {
+					mpImpl::mul(sub, coefficient, Q.Index(row, c2));
+					mpImpl::sub(Q.Index(r, c), Q.Index(r, c), sub);
+				}
+			}
+			row++;
 		}
-		mpq_mul(det, det, Q.Index(Q.Rows - 1, Q.Columns - 1));
+	}
+
+	// T is expected to be float or mpq_t type
+	static void Determinant(Matrix<T>& Q, T& det) {
+		RowEchelonForm(Q, true);
+		mpImpl::set_ui(det, 1, 1);
+		for (int i = 0; i < Q.Rows; i++){
+			mpImpl::mul(det, det, Q.Index(i, i));
+			if (mpImpl::cmp(det, zero) == 0){
+				return; // determinant is 0
+			}
+		}
 	}
 
 	// Prints the matrix to stdout
@@ -368,7 +389,7 @@ public:
 		mpf_init2(f, precBits);
 		for(int r = 0; r < Rows; r++){
 			for(int c = 0; c < Columns; c++){
-				mpImpl::to_float(f, Index(r,c));
+				mpImpl::to_mpf(f, Index(r,c));
 				mpf_out_str(stdout, 10, 0, f);
 				printf(" ");
 			}
@@ -455,7 +476,7 @@ private:
 		for(int r = 0; r < Rows; r++){
 			for(int c = 0; c < Columns; c++){
 				mpz_urandomm(rnd, rndState, maxRnd);
-				mpz_add_ui(rnd, rnd, 1);
+				// mpz_add_ui(rnd, rnd, 1);
 				mpImpl::from_mpz(conv, rnd);
 				mpImpl::set(Index(r,c), conv);
 			}

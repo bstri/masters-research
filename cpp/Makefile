@@ -1,4 +1,4 @@
-CXXFLAGS = -Wall -std=c++14 -O0 -g
+CXXFLAGS = -O0 -std=c++11 -g -I /opt/ohpc/pub/libs/spack/opt/spack/linux-centos7-sandybridge/gcc-4.8.5/gmp-6.1.2-hc7piarcvdeoqjtu3ikpsrapvkbivdbm/include/ -L /opt/ohpc/pub/libs/spack/opt/spack/linux-centos7-sandybridge/gcc-4.8.5/gmp-6.1.2-hc7piarcvdeoqjtu3ikpsrapvkbivdbm/lib/
 LIBS = -lgmpxx -lgmp
 DEMO = demo
 MAIN = main
