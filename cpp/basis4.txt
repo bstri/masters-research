@@ -1,0 +1,17 @@
+// these are basis vectors for even graphs of 4 edges
+A4
+
+// binoculars
+// paper #2
+d(A2)*d(A2)
+// book #2, equivalent to above
+//A2@d(A2)
+
+// 4-edge
+// paper/book #3
+A_2@A_2 
+// equivalent to above
+//A@A_3
+
+// acorn (odd)
+//A@(A_2)@A

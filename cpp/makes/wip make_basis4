@@ -1,0 +1,11 @@
+CXXFLAGS = -O0 -std=c++11 -I /opt/ohpc/pub/libs/spack/opt/spack/linux-centos7-sandybridge/gcc-4.8.5/gmp-6.1.2-hc7piarcvdeoqjtu3ikpsrapvkbivdbm/include/ -L /opt/ohpc/pub/libs/spack/opt/spack/linux-centos7-sandybridge/gcc-4.8.5/gmp-6.1.2-hc7piarcvdeoqjtu3ikpsrapvkbivdbm/lib/
+LIBS = -lgmpxx -lgmp
+
+basis4: basis4.o mpImpl.o
+	$(CXX) basis4.o mpImpl.o $(CXXFLAGS) $(LIBS) -o $@
+
+basis4.o: basis4.cpp Matrix.h MPList.h
+	$(CXX) -c basis4.cpp $(CXXFLAGS)
+
+mpImpl.o: mpImpl.h mpImpl.cpp
+	make

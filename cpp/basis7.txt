@@ -1,0 +1,15 @@
+A7
+A@(A*A2*A2)@A
+d(A3)@A4
+A_2@(A*A2)@A_2
+d(A_2@A_2)@A3
+d(A2)@A2@d(A2)@A
+A@d(A@d(A2)@A)@A2
+A@d(A2)@d(A2)@A2
+A_3@A@A_3
+A@A_5@A
+d(A2)@A@A_3@A
+A_3@d(A2)@A2
+A_3@A4
+A@(A_2*A3)@A
+d(A2)@A5

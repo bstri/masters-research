@@ -1,0 +1,11 @@
+CXXFLAGS = -Wall -std=c++14 -O3
+LIBS = -lgmpxx -lgmp
+
+basis4: basis4.o mpImpl.o
+	$(CXX) basis4.o mpImpl.o $(CXXFLAGS) $(LIBS) -o $@
+
+basis4.o: basis4.cpp Matrix.h MPList.h
+	$(CXX) -c basis4.cpp $(CXXFLAGS)
+
+mpImpl.o: mpImpl.h mpImpl.cpp
+	make
