@@ -49,6 +49,13 @@ void mpImpl::from_mpq(mpz_t dest, const mpq_t src){
 	mpz_set_q(dest, src);
 }
 
+void mpImpl::to_mpz(mpz_t dest, const mpz_t src){
+	mpz_set(dest, src);
+}
+void mpImpl::to_mpz(mpz_t dest, const mpq_t src){
+	mpz_set_q(dest, src);
+}
+
 void mpImpl::to_mpq(mpq_t dest, const mpz_t src){
 	mpq_set_z(dest, src);
 }
@@ -75,6 +82,9 @@ void mpImpl::set(mpz_t dest, const mpz_t op){
 }
 void mpImpl::set(mpq_t dest, const mpq_t op){
 	mpq_set(dest, op);
+}
+void mpImpl::set(float& dest, const float op){
+	dest = op;
 }
 
 void mpImpl::set_ui(mpz_t dest, unsigned long int op){

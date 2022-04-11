@@ -7,6 +7,8 @@
 #include <fstream>
 #include <string>
 #include "mpImpl.h"
+#include "MPList.h"
+#include <vector>
 
 using namespace std;
 
@@ -216,18 +218,99 @@ public:
 		return F;
 	}
 
+	// flatten: if true, makes all nonzero elements 1
+	static Matrix<T> FromLineHollowSymmetric(string line, bool flatten=false){
+		vector<string> elements;
+		string token;
+		size_t start = 0;
+		int row = 1;
+		int col = 0;
+		T element;
+		mpImpl::init(element);
+		do {
+			token = getNextTokenFromLine(start, line);
+			if (flatten) {
+				if (token != "0") {
+					token = "1";
+				}
+			}
+			elements.push_back(token);
+			col++;
+			if (col == row) {
+				col = 0;
+				row++;
+			}
+		} while (start != string::npos);
+		Matrix<T> M(row);
+		row = 1;
+		col = 0;
+		mpImpl::set_ui(M.Index(0,0), 0);
+		for (size_t i = 0; i < elements.size(); i++) {
+			mpImpl::set_str(element, elements[i].c_str(), 10);
+			mpImpl::canonicalize(element);
+			mpImpl::set(M.Index(row,col), element);
+			mpImpl::set(M.Index(col,row), element);
+			col++;
+			if (row == col) {
+				col = 0;
+				row++;
+			}
+		}
+		return M;
+	}
+
 	static Matrix<T> FromCompleteGraph(int n){
 		Matrix<T> K(n);
 		for (int c = 0; c < n; c++){
 			for (int r = 0; r < n; r++){
 				if (r == c) {
-					mpz_set_ui(K.Index(r,c), 0);
+					mpImpl::set_ui(K.Index(r,c), 0);
 				} else {
-					mpz_set_ui(K.Index(r,c), 1);
+					mpImpl::set_ui(K.Index(r,c), 1);
 				}
 			}
 		}
 		return K;
+	}
+
+	static Matrix<T> FromCycle(int n){
+		Matrix<T> C(n);
+		for (int i = 1; i < n; i++) {
+			mpImpl::set_ui(C.Index(i, i-1), 1);
+			mpImpl::set_ui(C.Index(i-1, i), 1);
+		}
+		mpImpl::set_ui(C.Index(0, n-1), 1);
+		mpImpl::set_ui(C.Index(n-1, 0), 1);
+		return C;
+	}
+
+	Matrix<T> Combine(const Matrix<T> other, bool disconnected) const {
+		int offset = disconnected ? 0 : 1;
+		Matrix<T> combined(Rows + other.Rows - offset, Columns + other.Columns - offset);
+		for (int r = 0; r < Rows; r++){
+			for (int c = 0; c < Columns; c++) {
+				mpImpl::set(combined.Index(r,c), Index(r,c));
+			}
+		}
+		for (int r = Rows - offset; r < Rows + other.Rows - offset; r++) {
+			for (int c = Columns - offset; c < Columns + other.Columns - offset; c++) {
+				mpImpl::set(combined.Index(r,c), other.Index(r - Rows + offset, c - Columns + offset));
+			}
+		}
+		return combined;
+	}
+
+	Matrix<T> AppendRow(MPList<T> row) const {
+		Matrix<T> newMatrix = Matrix<T>(Rows + 1, Columns);
+		for (int r = 0; r < Rows; r++){
+			for (int c = 0; c < Columns; c++){
+				mpImpl::set(newMatrix.Index(r,c), Index(r,c));
+			}
+		}
+		for (int i = 0; i < Columns; i++){
+			mpImpl::set(newMatrix.Index(Rows,i), row[i]);
+		}
+		return newMatrix;
 	}
 
 	void ToRationalMatrix(Matrix<mpz_t>& out) const {
@@ -321,8 +404,9 @@ public:
 	}
 
 	// T is expected to be float or mpq_t type
-	// If matrix is singular, returnEarly will stop this method early
-	static void RowEchelonForm(Matrix<T>& Q, bool returnEarly){
+	// If matrix is singular, returnEarly will stop this method early, returning 1
+	// otherwise, 0 will be returned
+	static int RowEchelonForm(Matrix<T>& Q, MPList<T>& augment, bool returnEarly){
 		T zero, coefficient, sub;
 		mpImpl::init(zero);
 		mpImpl::init(coefficient);
@@ -333,19 +417,20 @@ public:
 			bool noNonzero = true;
 			for (int r = row; r < Q.Rows; r++) {
 				if (mpImpl::cmp(Q.Index(r, c), zero) != 0) {
+					noNonzero = false;
 					if (r == row)
 						break;
 					// swap row r with row row
 					for (int c2 = c; c2 < Q.Columns; c2++) {
 						mpImpl::swap(Q.Index(row, c2), Q.Index(r, c2));
 					}
-					noNonzero = false;
+					mpImpl::swap(augment[r], augment[row]);
 					break;
 				}
 			}
 			if (noNonzero) {
 				if (returnEarly)
-					return;
+					return 1;
 				continue;
 			}
 			// perform row reduction
@@ -353,22 +438,122 @@ public:
 				mpImpl::div(coefficient, Q.Index(r, c), Q.Index(row, c));
 				for (int c2 = c; c2 < Q.Columns; c2++) {
 					mpImpl::mul(sub, coefficient, Q.Index(row, c2));
-					mpImpl::sub(Q.Index(r, c), Q.Index(r, c), sub);
+					mpImpl::sub(Q.Index(r, c2), Q.Index(r, c2), sub);
+				}
+				mpImpl::mul(sub, coefficient, augment[row]);
+				mpImpl::sub(augment[r], augment[r], sub);
+			}
+			row++;
+		}
+		return 0;
+	}
+
+	// T is expected to be float or mpq_t type
+	// reduce specifies whether the first entry in each pivot column should be set to 1
+	// If a column contains no pivot and returnEarly is set, this method returns 1
+	// otherwise, 0 will be returned
+	static int RowEchelonForm(Matrix<T>& Q, vector<int>& pivots, bool reduce = true, bool returnEarly = false){
+		T zero, coefficient, sub;
+		mpImpl::init(zero);
+		mpImpl::init(coefficient);
+		mpImpl::init(sub);
+		int row = 0;
+		for (int c = 0; c < Q.Columns; c++) {
+			// find first non-zero pivot and swap row with current row
+			bool noNonzero = true;
+			for (int r = row; r < Q.Rows; r++) {
+				if (mpImpl::cmp(Q.Index(r, c), zero) != 0) {
+					noNonzero = false;
+					if (r == row)
+						break;
+					// swap row r with row row	
+					for (int c2 = c; c2 < Q.Columns; c2++) {
+						mpImpl::swap(Q.Index(row, c2), Q.Index(r, c2));
+					}
+					break;
+				}
+			}
+			if (noNonzero) {
+				printf("no pivot in column %d\n", c+1);
+				if (returnEarly)
+					return 1;
+				continue;
+			}
+			pivots.push_back(c);
+			// printf("pivot in column %d, term is ", c);
+			// mpImpl::out_str(stdout, 10, Q.Index(row, c));
+			// printf("\n");
+			// perform row reduction
+			if (reduce) {
+				for (int c2 = c + 1; c2 < Q.Columns; c2++) {
+					mpImpl::div(coefficient, Q.Index(row, c2), Q.Index(row, c));
+					mpImpl::set(Q.Index(row, c2), coefficient);
+				}
+				mpImpl::set_ui(Q.Index(row, c), 1);
+			}
+			for (int r = row + 1; r < Q.Rows; r++) {
+				mpImpl::div(coefficient, Q.Index(r, c), Q.Index(row, c));
+				for (int c2 = c; c2 < Q.Columns; c2++) {
+					mpImpl::mul(sub, coefficient, Q.Index(row, c2));
+					mpImpl::sub(Q.Index(r, c2), Q.Index(r, c2), sub);
 				}
 			}
 			row++;
+			if (row == Q.Rows)
+				break;
+		}
+		return 0;
+	}
+
+	MPList<mpq_t> BackSubstitution(MPList<mpq_t> values){
+		MPList<mpq_t> solution = MPList<mpq_t>(values.Len);
+		mpq_t temp1, temp2;
+		mpq_inits(temp1, temp2, NULL);
+		
+		for (int r = values.Len-1; r >= 0; r--){
+			mpq_set(temp1, values[r]);
+			for (int c = values.Len-1; c > r; c--) {
+				mpq_mul(temp2, Index(r,c), solution[c]);
+				mpq_sub(temp1, temp1, temp2);
+			}
+			mpq_div(solution[r], temp1, Index(r,r));
+		}
+
+		return solution;
+	}
+
+	// expects self to have pivots set to 1
+	void BackSubstitution(vector<int>& pivots){
+		T coefficient, sub;
+		mpImpl::init(coefficient);
+		mpImpl::init(sub);
+		for (int row = pivots.size() - 1; row > 0; row--) {
+			int c = pivots[row];
+			for (int r = row - 1; r >= 0; r--) {
+				mpImpl::set(coefficient, Index(r, c));
+				for (int c2 = c; c2 < Columns; c2++) {
+					mpImpl::mul(sub, Index(row, c2), coefficient);
+					mpImpl::sub(Index(r, c2), Index(r, c2), sub);
+				}
+			}
 		}
 	}
 
 	// T is expected to be float or mpq_t type
 	static void Determinant(Matrix<T>& Q, T& det) {
-		RowEchelonForm(Q, true);
+		T zero;
+		mpImpl::init(zero);
+
+		vector<int> _;
+		int result = RowEchelonForm(Q, _, false, true);
+		if (result == 1) {
+			mpImpl::set(det, zero);
+			return;
+		}
+
 		mpImpl::set_ui(det, 1, 1);
 		for (int i = 0; i < Q.Rows; i++){
 			mpImpl::mul(det, det, Q.Index(i, i));
-			if (mpImpl::cmp(det, zero) == 0){
-				return; // determinant is 0
-			}
 		}
 	}
 
@@ -405,10 +590,21 @@ public:
 	}
 
 	// Computes the trace of this and stores it in trace
-	void Trace(T trace) const {
-		mpImpl::set(trace, Index(0,0));
+	void Trace(mpz_t trace) const {
+		T sum;
+		mpImpl::init(sum);
+		mpImpl::set(sum, Index(0,0));
 		for(int r = 1; r < Rows; r++)
-			mpImpl::add(trace, trace, Index(r,r));
+			mpImpl::add(sum, sum, Index(r,r));
+		mpImpl::to_mpz(trace, sum);
+	}
+	void Trace(mpq_t trace) const {
+		T sum;
+		mpImpl::init(sum);
+		mpImpl::set(sum, Index(0,0));
+		for(int r = 1; r < Rows; r++)
+			mpImpl::add(sum, sum, Index(r,r));
+		mpImpl::to_mpq(trace, sum);
 	}
 	
 	void Copy(const Matrix<mpz_t>& M){
@@ -500,6 +696,17 @@ private:
 		} else
 			start = line.find_first_not_of(ws, end);
 		return sub;
+	}
+
+	static string getNextTokenFromLine(size_t& start, string& line){
+		// if (start < 0 || start >= line.size())
+		// 	return "";
+		string ws = " ";
+		start = line.find_first_not_of(ws, start);
+		size_t end = line.find_first_of(ws, start);
+		string token = line.substr(start, end - start);
+		start = end;
+		return token;
 	}
 };
 

@@ -24,7 +24,7 @@ int main(int argc, char* argv[]){
 	bool d = false;
 	int fn = 0;
 	string arg;
-	Matrix<mpz_t> matrices[4](5);
+	Matrix<mpz_t> matrices(5)[4];
 	int matricesRead = 0;
 	for(int i = 1; i < argc; i++){
 		arg = argv[i];

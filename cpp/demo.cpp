@@ -19,14 +19,14 @@ int main(int argc, char* argv[]){
 
 	mpz_t maxRnd, rnd;
 	mpz_inits(maxRnd, rnd, NULL);
-	mpz_set_ui(maxRnd, 2);
+	mpz_set_ui(maxRnd, 3);
 	gmp_randstate_t r;
 	gmp_randinit_default(r);
 	gmp_randseed_ui(r, time(NULL));
 
 	if(isdigit(argv[1][0])){
 		int n = atoi(argv[1]);
-		Matrix<mpz_t> A = Matrix<mpz_t>::Random(n, r, maxRnd);
+		Matrix<mpz_t> A = Matrix<mpz_t>::Random(3, 5, r, maxRnd);
 		Matrix<mpz_t> B = Matrix<mpz_t>::Random(n, r, maxRnd);
 		Demo(A, B);
 		
@@ -42,7 +42,7 @@ int main(int argc, char* argv[]){
 void Demo(const Matrix<mpz_t>& A, const Matrix<mpz_t>& B){
 	int n = A.Rows;
 
-	// printf("A = \n");
+	printf("A = \n");
 	// A.Print();
 
 	// printf("\nB = \n");
@@ -70,18 +70,22 @@ void Demo(const Matrix<mpz_t>& A, const Matrix<mpz_t>& B){
 	// c.Print();
 	// printf("Constant term from Fadlev(A) = \n");
 	// mpz_out_str(stdout, 10, c[n]);
-	printf("\nDet(A) from Gaussian elimination = ");
+	// printf("\nDet(A) from Gaussian elimination = ");
 	mpq_t det;
 	mpq_init(det);
 	Matrix<float> q(A.Rows, A.Columns);
 	// Matrix<mpq_t> q(A.Rows, A.Columns);
 	A.ToRationalMatrix(q);
-	float _det;
-	clock_t tDet = clock();
-	// Matrix<mpq_t>::Determinant(q, det);
-	Matrix<float>::Determinant(q, _det);
-	tDet = clock() - tDet;
-	printf("%.0f\n", _det);
+	q.Print();
+	Matrix<float>::RowEchelonForm(q, false);
+	printf("\nAfter row echelon form...\n\n");
+	q.Print();
+	// float _det;
+	// clock_t tDet = clock();
+	// // Matrix<mpq_t>::Determinant(q, det);
+	// Matrix<float>::Determinant(q, _det);
+	// tDet = clock() - tDet;
+	// printf("%.0f\n", _det);
 	// mpq_out_str(stdout, 10, det);
 
 	// printf("\nInv(A) = \n");
@@ -118,6 +122,6 @@ void Demo(const Matrix<mpz_t>& A, const Matrix<mpz_t>& B){
 
 	// printf("\nA*B took %f seconds\n", ((float) t1)/CLOCKS_PER_SEC);
 	// printf("Fadlev(A) took %f seconds\n", ((float) t2)/CLOCKS_PER_SEC);
-	printf("Det(A) took %f seconds\n", ((float) tDet)/CLOCKS_PER_SEC);
+	// printf("Det(A) took %f seconds\n", ((float) tDet)/CLOCKS_PER_SEC);
 	// printf("Fadlev(L) took %f seconds\n", ((float) t3)/CLOCKS_PER_SEC);
 }

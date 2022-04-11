@@ -24,6 +24,9 @@ namespace mpImpl {
 	void from_mpq(mpq_t dest, const mpq_t src);
 	void from_mpq(mpz_t dest, const mpq_t src);
 
+	void to_mpz(mpz_t dest, const mpz_t src);
+	void to_mpz(mpz_t dest, const mpq_t src);
+
 	void to_mpq(mpq_t dest, const mpz_t src);
 	void to_mpq(mpq_t dest, const mpq_t src);
 
@@ -35,6 +38,7 @@ namespace mpImpl {
 
 	void set(mpz_t dest, const mpz_t op);
 	void set(mpq_t dest, const mpq_t op);
+	void set(float& dest, const float op);
 
 	void set_ui(mpz_t dest, unsigned long op);
 	void set_ui(mpq_t dest, signed long n, unsigned long d = 1);

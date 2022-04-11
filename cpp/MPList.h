@@ -22,6 +22,22 @@ public:
 		Len = numEntries;
 	}
 
+	MPList<T> Append(T& element) const {
+		MPList<T> newList = MPList(Len + 1);
+		for (int i = 0; i < Len; i++){
+			mpImpl::set(newList[i], Data[i]);
+		}
+		mpImpl::set(newList[Len], element);
+		return newList;
+	}
+
+	void ToRationalList(MPList<mpq_t>& L) const {
+		for (int i = 0; i < Len; i++) {
+			mpImpl::to_mpq(L[i], Data[i]);
+		}
+		// L.Print();
+	}
+
 	// Destructor
 	~MPList(){
 		Deallocate();
@@ -54,7 +70,7 @@ public:
 		mpf_t f;
 		mpf_init2(f, precBits);
 		for(int i = 0; i < Len; i++){
-			mpImpl::to_float(f, Data[i]);
+			mpImpl::to_mpf(f, Data[i]);
 			mpf_out_str(stdout, 10, 0, f);
 			printf("%s", delim);
 		}
