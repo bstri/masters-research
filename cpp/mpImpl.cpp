@@ -127,6 +127,12 @@ void mpImpl::mul(mpz_t product, const mpz_t op1, const mpz_t op2){
 void mpImpl::mul(mpq_t product, const mpq_t op1, const mpq_t op2){
 	mpq_mul(product, op1, op2);
 }
+void mpImpl::mul(mpq_t product, const mpq_t op1, const mpz_t op2){
+	mpq_t op2_q;
+	mpq_init(op2_q);
+	mpq_set_z(op2_q, op2);
+	mpImpl::mul(product, op1, op2);
+}
 void mpImpl::mul(float& product, const float op1, const float op2){
 	product = op1*op2;
 }

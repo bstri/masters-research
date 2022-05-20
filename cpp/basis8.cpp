@@ -5,6 +5,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <ctime>
 
 using namespace std;
 
@@ -22,6 +23,10 @@ int main(int argc, char* argv[]){
 	mpz_inits(edges, temp, val, NULL);
 	Matrix<mpz_t> k8 = Matrix<mpz_t>::FromCompleteGraph(size);
 
+	gmp_randstate_t rndState;
+	gmp_randinit_default(rndState);
+	gmp_randseed_ui(rndState, time(NULL));
+
 	ifstream inFile("evenGraphs8.txt");
 	string line;
 
@@ -30,7 +35,8 @@ int main(int argc, char* argv[]){
 			getline(inFile, line);
 		} while (line.find_first_not_of(" ") == string::npos);
 		Matrix<mpz_t> basisGraph = Matrix<mpz_t>::FromLineHollowSymmetric(line);
-		Matrix<mpz_t> combined = k8.Combine(basisGraph, true);
+		// Matrix<mpz_t> combined = k8.Combine(basisGraph, false);
+		Matrix<mpz_t> combined = k8.RandomlyWeight(rndState, 5);
 		printf("-----iteration %d-----\n", basisIndex+1);
 		// basisGraph.Print();
 		// combined.Print();
@@ -76,7 +82,8 @@ int main(int argc, char* argv[]){
 			getline(inFile2, line);
 		} while (line.find_first_not_of(" ") == string::npos);
 		Matrix<mpz_t> basisGraph = Matrix<mpz_t>::FromLineHollowSymmetric(line);
-		Matrix<mpz_t> combined = k8.Combine(basisGraph, true);
+		// Matrix<mpz_t> combined = k8.Combine(basisGraph, false);
+		Matrix<mpz_t> combined = k8.RandomlyWeight(rndState, 5);
 		printf("-----iteration %d-----\n", i+1);
 
 		basis8(combined,terms);
@@ -115,8 +122,8 @@ int main(int argc, char* argv[]){
 	inFile2.close();
 
 	printf("\n\n");
-	system.Print();
-	printf("\n\n");
+	// system.Print();
+	// printf("\n\n");
 	vector<int> pivots;
 	Matrix<mpq_t>::RowEchelonForm(system, pivots);
 	// system.Print();

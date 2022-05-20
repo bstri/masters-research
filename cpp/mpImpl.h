@@ -56,6 +56,7 @@ namespace mpImpl {
 
 	void mul(mpz_t product, const mpz_t op1, const mpz_t op2);
 	void mul(mpq_t product, const mpq_t op1, const mpq_t op2);
+	void mul(mpq_t product, const mpq_t op1, const mpz_t op2);
 	void mul(float& product, const float op1, const float op2);
 
 	void div(mpq_t quotient, const mpq_t op1, const mpq_t op2);

@@ -120,6 +120,28 @@ public:
 		return R;
 	}
 
+	// Weights the non-zero entries of the matrix, keeping symmetry and hollow-ness
+	Matrix<T> RandomlyWeight(gmp_randstate_t rndState, unsigned int maxRnd) const {
+		Matrix<T> weightedCopy = *this;
+		mpz_t rand, maxRand_z, sign, two;
+		mpz_inits(rand, maxRand_z, sign, two, NULL);
+		mpz_set_ui(maxRand_z, maxRnd);
+		mpz_set_ui(two, 2);
+		for (int i = 1; i < Rows; i++) {
+			for (int j = 0; j < i; j++) {
+				mpz_urandomm(sign, rndState, two);
+				mpz_mul_ui(sign, sign, 2);
+				mpz_sub_ui(sign, sign, 1);
+				mpz_urandomm(rand, rndState, maxRand_z);
+				mpz_add_ui(rand, rand, 1);
+				mpz_mul(rand, rand, sign);
+				mpImpl::mul(weightedCopy.Index(i,j), weightedCopy.Index(i,j), rand);
+				mpImpl::set(weightedCopy.Index(j,i), weightedCopy.Index(i,j));
+			}
+		}
+		return weightedCopy;
+	}
+
 	// Construct matrix from text file
 	// First line should have the format: <num rows> <num columns>
 	// Spaces delimit entries, newlines delimit rows
