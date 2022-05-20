@@ -4,6 +4,7 @@
 #include "MPList.h"
 #include <fstream>
 #include <string>
+#include "Fadlev.h"
 #include <vector>
 
 using namespace std;
@@ -15,7 +16,7 @@ int main(int argc, char* argv[]){
 	int cycleIndex = 6;
 	int size = subGraphSize;
 	int dimension = 43; // how many connected even subgraphs (matrix expressions) of size 'subGraphSize'
-	int totalGraphs = 67;
+	int totalGraphs = 68;
 	Matrix<mpq_t> system = Matrix<mpq_t>(totalGraphs, totalGraphs + 1);
 	MPList<mpq_t> terms = MPList<mpq_t>(totalGraphs); 
 	mpz_t edges, temp, val;
@@ -30,7 +31,7 @@ int main(int argc, char* argv[]){
 			getline(inFile, line);
 		} while (line.find_first_not_of(" ") == string::npos);
 		Matrix<mpz_t> basisGraph = Matrix<mpz_t>::FromLineHollowSymmetric(line);
-		Matrix<mpz_t> combined = k8.Combine(basisGraph, true);
+		Matrix<mpz_t> combined = k8.Combine(basisGraph, false);
 		printf("-----iteration %d-----\n", basisIndex+1);
 		// basisGraph.Print();
 		// combined.Print();
@@ -42,41 +43,20 @@ int main(int argc, char* argv[]){
 			mpq_set(system.Index(basisIndex, i), terms[i]);
 		}
 
-		mpz_t sum;
-		mpz_init(sum);
-		mpz_t trace;
-		mpz_init(trace);
-		for (int k = 0; k < combined.Rows; k++){
-			// tr(A_2@((A@x@A)*(A@d(A@x@A)@A)))
-			Matrix<mpz_t> delta = Matrix<mpz_t>(combined.Rows);
-			mpImpl::set_ui(delta.Index(k,k), 1);
-			Matrix<mpz_t> T1 = Matrix<mpz_t>(combined.Rows);
-			Matrix<mpz_t> T2 = Matrix<mpz_t>(combined.Rows);
-			Matrix<mpz_t> C = Matrix<mpz_t>(combined.Rows);
-			combined.RightMultiply(T1, delta);
-			T1.RightMultiply(C, combined);
-			C.GetDiagonal(T1);
-			combined.RightMultiply(T2, T1);
-			T2.RightMultiply(T1, combined);
-			C.MultiplyEntrywise(T2, T1);
-			combined.MultiplyEntrywise(T1, combined);
-			T1.RightMultiply(C, T2);
-			C.Trace(trace);
-			mpz_add(sum, sum, trace);
-		}
-		mpq_set_z(system.Index(basisIndex, totalGraphs), sum);
-
+		Matrix<mpq_t> combined_q = Matrix<mpq_t>(combined.Rows, combined.Columns);
+		combined.ToRationalMatrix(combined_q);
+		Matrix<mpq_t>::Determinant(combined_q, system.Index(basisIndex, totalGraphs));
 		mpq_out_str(stdout, 10, system.Index(basisIndex, totalGraphs));
 	}
 	inFile.close();
 
 	ifstream inFile2("disconnectedGraphs8.txt");
-	for (int i = dimension; i < totalGraphs; i++) {
+	for (int i = dimension; i < totalGraphs - 1; i++) {
 		do {
 			getline(inFile2, line);
 		} while (line.find_first_not_of(" ") == string::npos);
 		Matrix<mpz_t> basisGraph = Matrix<mpz_t>::FromLineHollowSymmetric(line);
-		Matrix<mpz_t> combined = k8.Combine(basisGraph, true);
+		Matrix<mpz_t> combined = k8.Combine(basisGraph, false);
 		printf("-----iteration %d-----\n", i+1);
 
 		basis8(combined,terms);
@@ -86,33 +66,20 @@ int main(int argc, char* argv[]){
 			mpq_set(system.Index(i, j), terms[j]);
 		}
 
-		mpz_t sum;
-		mpz_init(sum);
-		mpz_t trace;
-		mpz_init(trace);
-		for (int k = 0; k < combined.Rows; k++){
-			// tr(A_2@((A@x@A)*(A@d(A@x@A)@A)))
-			Matrix<mpz_t> delta = Matrix<mpz_t>(combined.Rows);
-			mpImpl::set_ui(delta.Index(k,k), 1);
-			Matrix<mpz_t> T1 = Matrix<mpz_t>(combined.Rows);
-			Matrix<mpz_t> T2 = Matrix<mpz_t>(combined.Rows);
-			Matrix<mpz_t> C = Matrix<mpz_t>(combined.Rows);
-			combined.RightMultiply(T1, delta);
-			T1.RightMultiply(C, combined);
-			C.GetDiagonal(T1);
-			combined.RightMultiply(T2, T1);
-			T2.RightMultiply(T1, combined);
-			C.MultiplyEntrywise(T2, T1);
-			combined.MultiplyEntrywise(T1, combined);
-			T1.RightMultiply(C, T2);
-			C.Trace(trace);
-			mpz_add(sum, sum, trace);
-		}
-		mpq_set_z(system.Index(i, totalGraphs), sum);
-
-		mpq_out_str(stdout, 10, system.Index(i, totalGraphs));
+		Matrix<mpq_t> combined_q = Matrix<mpq_t>(combined.Rows, combined.Columns);
+		combined.ToRationalMatrix(combined_q);
+		Matrix<mpq_t>::Determinant(combined_q, system.Index(i, totalGraphs));
+		mpq_out_str(stdout, 10, system.Index(i, totalGraphs-1));
 	}
 	inFile2.close();
+
+	basis8(k8, terms);
+	for (int j = 0; j < totalGraphs; j++){
+		mpq_set(system.Index(totalGraphs-1, j), terms[j]);
+	}
+	Matrix<mpq_t> k8_q = Matrix<mpq_t>(k8.Rows, k8.Columns);
+	k8.ToRationalMatrix(k8_q);
+	Matrix<mpq_t>::Determinant(k8_q, system.Index(totalGraphs-1, totalGraphs));
 
 	printf("\n\n");
 	system.Print();
@@ -646,4 +613,9 @@ void basis8(const Matrix<mpz_t>& A, MPList<mpq_t>& terms){
 	mpz_mul(term, term, traceA2);
 	mpz_mul(term, term, traceA2);
 	mpq_set_z(terms[66], term);
+
+	Matrix<mpq_t> Ainv = Matrix<mpq_t>(A.Rows, A.Columns);
+	MPList<mpz_t> coefs = MPList<mpz_t>(A.Rows + 1);
+	Fadlev(coefs, Ainv, A);
+	mpq_set_z(terms[67], coefs[A.Rows - 8]);
 }

@@ -77,9 +77,9 @@ void Demo(const Matrix<mpz_t>& A, const Matrix<mpz_t>& B){
 	// Matrix<mpq_t> q(A.Rows, A.Columns);
 	A.ToRationalMatrix(q);
 	q.Print();
-	Matrix<float>::RowEchelonForm(q, false);
-	printf("\nAfter row echelon form...\n\n");
-	q.Print();
+	// Matrix<float>::RowEchelonForm(q, false);
+	// printf("\nAfter row echelon form...\n\n");
+	// q.Print();
 	// float _det;
 	// clock_t tDet = clock();
 	// // Matrix<mpq_t>::Determinant(q, det);

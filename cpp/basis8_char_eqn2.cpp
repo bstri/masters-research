@@ -4,6 +4,7 @@
 #include "MPList.h"
 #include <fstream>
 #include <string>
+#include "Fadlev.h"
 #include <vector>
 
 using namespace std;
@@ -30,7 +31,7 @@ int main(int argc, char* argv[]){
 			getline(inFile, line);
 		} while (line.find_first_not_of(" ") == string::npos);
 		Matrix<mpz_t> basisGraph = Matrix<mpz_t>::FromLineHollowSymmetric(line);
-		Matrix<mpz_t> combined = k8.Combine(basisGraph, true);
+		Matrix<mpz_t> combined = k8.Combine(basisGraph, false);
 		printf("-----iteration %d-----\n", basisIndex+1);
 		// basisGraph.Print();
 		// combined.Print();
@@ -42,41 +43,20 @@ int main(int argc, char* argv[]){
 			mpq_set(system.Index(basisIndex, i), terms[i]);
 		}
 
-		mpz_t sum;
-		mpz_init(sum);
-		mpz_t trace;
-		mpz_init(trace);
-		for (int k = 0; k < combined.Rows; k++){
-			// tr(A_2@((A@x@A)*(A@d(A@x@A)@A)))
-			Matrix<mpz_t> delta = Matrix<mpz_t>(combined.Rows);
-			mpImpl::set_ui(delta.Index(k,k), 1);
-			Matrix<mpz_t> T1 = Matrix<mpz_t>(combined.Rows);
-			Matrix<mpz_t> T2 = Matrix<mpz_t>(combined.Rows);
-			Matrix<mpz_t> C = Matrix<mpz_t>(combined.Rows);
-			combined.RightMultiply(T1, delta);
-			T1.RightMultiply(C, combined);
-			C.GetDiagonal(T1);
-			combined.RightMultiply(T2, T1);
-			T2.RightMultiply(T1, combined);
-			C.MultiplyEntrywise(T2, T1);
-			combined.MultiplyEntrywise(T1, combined);
-			T1.RightMultiply(C, T2);
-			C.Trace(trace);
-			mpz_add(sum, sum, trace);
-		}
-		mpq_set_z(system.Index(basisIndex, totalGraphs), sum);
-
-		mpq_out_str(stdout, 10, system.Index(basisIndex, totalGraphs));
+		Matrix<mpq_t> Ainv = Matrix<mpq_t>(combined.Rows, combined.Columns);
+		MPList<mpz_t> coefs = MPList<mpz_t>(combined.Rows + 1);
+		Fadlev(coefs, Ainv, combined);
+		mpq_set_z(system.Index(basisIndex, totalGraphs), coefs[8]);
 	}
 	inFile.close();
 
 	ifstream inFile2("disconnectedGraphs8.txt");
-	for (int i = dimension; i < totalGraphs; i++) {
+	for (int i = dimension; i < totalGraphs - 1; i++) {
 		do {
 			getline(inFile2, line);
 		} while (line.find_first_not_of(" ") == string::npos);
 		Matrix<mpz_t> basisGraph = Matrix<mpz_t>::FromLineHollowSymmetric(line);
-		Matrix<mpz_t> combined = k8.Combine(basisGraph, true);
+		Matrix<mpz_t> combined = k8.Combine(basisGraph, false);
 		printf("-----iteration %d-----\n", i+1);
 
 		basis8(combined,terms);
@@ -86,31 +66,10 @@ int main(int argc, char* argv[]){
 			mpq_set(system.Index(i, j), terms[j]);
 		}
 
-		mpz_t sum;
-		mpz_init(sum);
-		mpz_t trace;
-		mpz_init(trace);
-		for (int k = 0; k < combined.Rows; k++){
-			// tr(A_2@((A@x@A)*(A@d(A@x@A)@A)))
-			Matrix<mpz_t> delta = Matrix<mpz_t>(combined.Rows);
-			mpImpl::set_ui(delta.Index(k,k), 1);
-			Matrix<mpz_t> T1 = Matrix<mpz_t>(combined.Rows);
-			Matrix<mpz_t> T2 = Matrix<mpz_t>(combined.Rows);
-			Matrix<mpz_t> C = Matrix<mpz_t>(combined.Rows);
-			combined.RightMultiply(T1, delta);
-			T1.RightMultiply(C, combined);
-			C.GetDiagonal(T1);
-			combined.RightMultiply(T2, T1);
-			T2.RightMultiply(T1, combined);
-			C.MultiplyEntrywise(T2, T1);
-			combined.MultiplyEntrywise(T1, combined);
-			T1.RightMultiply(C, T2);
-			C.Trace(trace);
-			mpz_add(sum, sum, trace);
-		}
-		mpq_set_z(system.Index(i, totalGraphs), sum);
-
-		mpq_out_str(stdout, 10, system.Index(i, totalGraphs));
+		Matrix<mpq_t> Ainv = Matrix<mpq_t>(combined.Rows, combined.Columns);
+		MPList<mpz_t> coefs = MPList<mpz_t>(combined.Rows + 1);
+		Fadlev(coefs, Ainv, combined);
+		mpq_set_z(system.Index(i, totalGraphs), coefs[8]);
 	}
 	inFile2.close();
 

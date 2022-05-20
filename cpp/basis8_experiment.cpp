@@ -4,6 +4,7 @@
 #include "MPList.h"
 #include <fstream>
 #include <string>
+#include "Fadlev.h"
 #include <vector>
 
 using namespace std;
@@ -11,108 +12,35 @@ using namespace std;
 void basis8(const Matrix<mpz_t>& M, MPList<mpq_t>& terms);
 
 int main(int argc, char* argv[]){
-	int subGraphSize = 8;
-	int cycleIndex = 6;
-	int size = subGraphSize;
-	int dimension = 43; // how many connected even subgraphs (matrix expressions) of size 'subGraphSize'
-	int totalGraphs = 67;
-	Matrix<mpq_t> system = Matrix<mpq_t>(totalGraphs, totalGraphs + 1);
-	MPList<mpq_t> terms = MPList<mpq_t>(totalGraphs); 
-	mpz_t edges, temp, val;
-	mpz_inits(edges, temp, val, NULL);
-	Matrix<mpz_t> k8 = Matrix<mpz_t>::FromCompleteGraph(size);
+	int numExpressions = 67;
+	int numGraphs = 70;
+	Matrix<mpq_t> system = Matrix<mpq_t>(numGraphs, numExpressions + 1);
+	MPList<mpq_t> terms = MPList<mpq_t>(numExpressions); 
 
-	ifstream inFile("evenGraphs8.txt");
+	ifstream inFile("randGraphs1.txt");
+	ifstream inFile2("randGraphs1Values.txt");
 	string line;
 
-	for (int basisIndex = 0; basisIndex < dimension; basisIndex++) {
+	for (int i = 0; i < numGraphs; i++) {
 		do {
 			getline(inFile, line);
 		} while (line.find_first_not_of(" ") == string::npos);
-		Matrix<mpz_t> basisGraph = Matrix<mpz_t>::FromLineHollowSymmetric(line);
-		Matrix<mpz_t> combined = k8.Combine(basisGraph, true);
-		printf("-----iteration %d-----\n", basisIndex+1);
-		// basisGraph.Print();
-		// combined.Print();
-
-		basis8(combined,terms);
-
-		terms.Print();
-		for (int i = 0; i < totalGraphs; i++){
-			mpq_set(system.Index(basisIndex, i), terms[i]);
-		}
-
-		mpz_t sum;
-		mpz_init(sum);
-		mpz_t trace;
-		mpz_init(trace);
-		for (int k = 0; k < combined.Rows; k++){
-			// tr(A_2@((A@x@A)*(A@d(A@x@A)@A)))
-			Matrix<mpz_t> delta = Matrix<mpz_t>(combined.Rows);
-			mpImpl::set_ui(delta.Index(k,k), 1);
-			Matrix<mpz_t> T1 = Matrix<mpz_t>(combined.Rows);
-			Matrix<mpz_t> T2 = Matrix<mpz_t>(combined.Rows);
-			Matrix<mpz_t> C = Matrix<mpz_t>(combined.Rows);
-			combined.RightMultiply(T1, delta);
-			T1.RightMultiply(C, combined);
-			C.GetDiagonal(T1);
-			combined.RightMultiply(T2, T1);
-			T2.RightMultiply(T1, combined);
-			C.MultiplyEntrywise(T2, T1);
-			combined.MultiplyEntrywise(T1, combined);
-			T1.RightMultiply(C, T2);
-			C.Trace(trace);
-			mpz_add(sum, sum, trace);
-		}
-		mpq_set_z(system.Index(basisIndex, totalGraphs), sum);
-
-		mpq_out_str(stdout, 10, system.Index(basisIndex, totalGraphs));
-	}
-	inFile.close();
-
-	ifstream inFile2("disconnectedGraphs8.txt");
-	for (int i = dimension; i < totalGraphs; i++) {
-		do {
-			getline(inFile2, line);
-		} while (line.find_first_not_of(" ") == string::npos);
-		Matrix<mpz_t> basisGraph = Matrix<mpz_t>::FromLineHollowSymmetric(line);
-		Matrix<mpz_t> combined = k8.Combine(basisGraph, true);
+		Matrix<mpz_t> graph = Matrix<mpz_t>::FromLineHollowSymmetric(line);
+		graph.Print();
 		printf("-----iteration %d-----\n", i+1);
 
-		basis8(combined,terms);
+		basis8(graph,terms);
 
 		terms.Print();
-		for (int j = 0; j < totalGraphs; j++){
+		for (int j = 0; j < numExpressions; j++){
 			mpq_set(system.Index(i, j), terms[j]);
 		}
-
-		mpz_t sum;
-		mpz_init(sum);
-		mpz_t trace;
-		mpz_init(trace);
-		for (int k = 0; k < combined.Rows; k++){
-			// tr(A_2@((A@x@A)*(A@d(A@x@A)@A)))
-			Matrix<mpz_t> delta = Matrix<mpz_t>(combined.Rows);
-			mpImpl::set_ui(delta.Index(k,k), 1);
-			Matrix<mpz_t> T1 = Matrix<mpz_t>(combined.Rows);
-			Matrix<mpz_t> T2 = Matrix<mpz_t>(combined.Rows);
-			Matrix<mpz_t> C = Matrix<mpz_t>(combined.Rows);
-			combined.RightMultiply(T1, delta);
-			T1.RightMultiply(C, combined);
-			C.GetDiagonal(T1);
-			combined.RightMultiply(T2, T1);
-			T2.RightMultiply(T1, combined);
-			C.MultiplyEntrywise(T2, T1);
-			combined.MultiplyEntrywise(T1, combined);
-			T1.RightMultiply(C, T2);
-			C.Trace(trace);
-			mpz_add(sum, sum, trace);
-		}
-		mpq_set_z(system.Index(i, totalGraphs), sum);
-
-		mpq_out_str(stdout, 10, system.Index(i, totalGraphs));
+		getline(inFile2, line);
+		mpq_set_str(system.Index(i, numExpressions), line.c_str(), 10);
 	}
+	inFile.close();
 	inFile2.close();
+
 
 	printf("\n\n");
 	system.Print();

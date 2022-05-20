@@ -11,13 +11,13 @@ void basis6(const Matrix<mpz_t>& M, MPList<mpq_t>& terms);
 
 int main(int argc, char* argv[]){
 	int subGraphSize = 6;
-	int subGraphIndex = 1; // if the subgraph is a basis graph, what index it is. -1 for none
+	int subGraphIndex = 9; // if the subgraph is a basis graph, what index it is. -1 for none
 	int dimension = 10; // how many connected even subgraphs (matrix expressions) of size 'subGraphSize'
 	Matrix<mpq_t> system = Matrix<mpq_t>(dimension, dimension + 1);
 	MPList<mpq_t> terms = MPList<mpq_t>(dimension); 
 	Matrix<mpz_t> cycle = Matrix<mpz_t>::FromCycle(subGraphSize);
 
-	ifstream inFile("evenGraphs6Book.txt");
+	ifstream inFile("evenGraphs6.txt");
 	string line;
 	for (int i = 0; i < dimension; i++) {
 		do {
@@ -42,6 +42,8 @@ int main(int argc, char* argv[]){
 	printf("\n\n");
 	vector<int> pivots;
 	Matrix<mpq_t>::RowEchelonForm(system, pivots);
+	system.Print();
+	printf("\n\n");
 	system.BackSubstitution(pivots);
 	system.Print();
 
@@ -68,71 +70,73 @@ void basis6(const Matrix<mpz_t>& A, MPList<mpq_t>& terms){
 	A.MultiplyEntrywise(A_2, A);
 	Matrix<mpz_t> A_3(A.Rows, A.Columns);
 	A.MultiplyEntrywise(A_3, A_2);
-	A.MultiplyEntrywise(_T1, A_3);
-	Matrix<mpz_t> A_5(A.Rows, A.Columns);
-	A.MultiplyEntrywise(A_5, _T1);
 	
-	// A3*A3
-	A3.MultiplyEntrywise(_T1, A3);
-	_T1.Trace(term);
+	// d(A2)*d(A2)*d(A2)
+	Matrix<mpz_t> _T3(A.Rows, A.Columns);
+	A2.GetDiagonal(_T1);
+	A2.GetDiagonal(_T2);
+	_T1.MultiplyEntrywise(_T3, _T2);
+	A2.GetDiagonal(_T1);
+	_T3.MultiplyEntrywise(_T2, _T1);
+	_T2.Trace(term);
 	mpq_set_z(terms[0], term);
 	
-	// A6
-	A6.Trace(term);
+	// A_3@A3
+	A_3.RightMultiply(_T1, A3);
+	_T1.Trace(term);
 	mpq_set_z(terms[1], term);
+	
+	// d(A2)*d(A_2@A_2)
+	A2.GetDiagonal(_T1);
+	A_2.RightMultiply(_T2, A_2);
+	_T2.GetDiagonal(_T3);
+	_T1.MultiplyEntrywise(_T2, _T3);
+	_T2.Trace(term);
+	mpq_set_z(terms[2], term);
+	
+	// A_3@A_3
+	A_3.RightMultiply(_T1, A_3);
+	_T1.Trace(term);
+	mpq_set_z(terms[3], term);
+	
+	// d(A2)*d(A@d(A2)@A)
+	A2.GetDiagonal(_T1);
+	A2.GetDiagonal(_T2);
+	A.RightMultiply(_T3, _T2);
+	_T3.RightMultiply(_T2, A);
+	_T2.GetDiagonal(_T3);
+	_T1.MultiplyEntrywise(_T2, _T3);
+	_T2.Trace(term);
+	mpq_set_z(terms[4], term);
 	
 	// A_2@A_2@A_2
 	A_2.RightMultiply(_T1, A_2);
 	_T1.RightMultiply(_T2, A_2);
 	_T2.Trace(term);
-	mpq_set_z(terms[2], term);
-	
-	// A@d(A@d(A2)@A)@A
-	A2.GetDiagonal(_T1);
-	A.RightMultiply(_T2, _T1);
-	_T2.RightMultiply(_T1, A);
-	_T1.GetDiagonal(_T2);
-	A.RightMultiply(_T1, _T2);
-	_T1.RightMultiply(_T2, A);
-	_T2.Trace(term);
-	mpq_set_z(terms[3], term);
-	
-	// d(A2)@d(A2)@A2
-	Matrix<mpz_t> _T3(A.Rows, A.Columns);
-	A2.GetDiagonal(_T1);
-	A2.GetDiagonal(_T2);
-	_T1.RightMultiply(_T3, _T2);
-	_T3.RightMultiply(_T1, A2);
-	_T1.Trace(term);
-	mpq_set_z(terms[4], term);
-	
-	// A@A_5
-	A.RightMultiply(_T1, A_5);
-	_T1.Trace(term);
 	mpq_set_z(terms[5], term);
-	
-	// d(A2)@A_2@A_2
-	A2.GetDiagonal(_T1);
-	_T1.RightMultiply(_T2, A_2);
-	_T2.RightMultiply(_T1, A_2);
-	_T1.Trace(term);
-	mpq_set_z(terms[6], term);
-	
-	// A_3@A3
-	A_3.RightMultiply(_T1, A3);
-	_T1.Trace(term);
-	mpq_set_z(terms[7], term);
 	
 	// (A2*A2)@A_2
 	A2.MultiplyEntrywise(_T1, A2);
 	_T1.RightMultiply(_T2, A_2);
 	_T2.Trace(term);
+	mpq_set_z(terms[6], term);
+	
+	// d(A3)*d(A3)
+	A3.GetDiagonal(_T1);
+	A3.GetDiagonal(_T2);
+	_T1.MultiplyEntrywise(_T3, _T2);
+	_T3.Trace(term);
+	mpq_set_z(terms[7], term);
+	
+	// d(A2)*d(A4)
+	A2.GetDiagonal(_T1);
+	A4.GetDiagonal(_T2);
+	_T1.MultiplyEntrywise(_T3, _T2);
+	_T3.Trace(term);
 	mpq_set_z(terms[8], term);
 	
-	// d(A2)@A4
-	A2.GetDiagonal(_T1);
-	_T1.RightMultiply(_T2, A4);
-	_T2.Trace(term);
+	// A6
+	A6.Trace(term);
 	mpq_set_z(terms[9], term);
 	
 }

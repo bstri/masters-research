@@ -30,7 +30,7 @@ int main(int argc, char* argv[]){
 			getline(inFile, line);
 		} while (line.find_first_not_of(" ") == string::npos);
 		Matrix<mpz_t> basisGraph = Matrix<mpz_t>::FromLineHollowSymmetric(line);
-		Matrix<mpz_t> combined = k8.Combine(basisGraph, true);
+		Matrix<mpz_t> combined = k8.Combine(basisGraph, false);
 		printf("-----iteration %d-----\n", basisIndex+1);
 		// basisGraph.Print();
 		// combined.Print();
@@ -76,7 +76,7 @@ int main(int argc, char* argv[]){
 			getline(inFile2, line);
 		} while (line.find_first_not_of(" ") == string::npos);
 		Matrix<mpz_t> basisGraph = Matrix<mpz_t>::FromLineHollowSymmetric(line);
-		Matrix<mpz_t> combined = k8.Combine(basisGraph, true);
+		Matrix<mpz_t> combined = k8.Combine(basisGraph, false);
 		printf("-----iteration %d-----\n", i+1);
 
 		basis8(combined,terms);
