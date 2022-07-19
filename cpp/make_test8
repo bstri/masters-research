@@ -1,0 +1,11 @@
+CXXFLAGS = -Wall -std=c++14 -O3
+LIBS = -lgmpxx -lgmp
+
+test8: test8.o mpImpl.o
+	$(CXX) test8.o mpImpl.o $(CXXFLAGS) $(LIBS) -o $@
+
+test8.o: test8.cpp Matrix.h MPList.h
+	$(CXX) -c test8.cpp $(CXXFLAGS)
+
+mpImpl.o: mpImpl.h mpImpl.cpp
+	make

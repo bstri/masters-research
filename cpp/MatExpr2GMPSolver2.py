@@ -51,8 +51,9 @@ class Compiler:
 		match = re.search('[A-Z]', exprList[0])
 		self.varName = exprList[0][match.start()]
 		self.numTempMatrices = 2
+		self.traceTempUsed = False
 		algDesc = algDesc and '/* ' + algDesc + ' */\n' or ''
-		self.Code = ('{funcDesc}void {funcName}(const Matrix<mpz_t>& {0}, MPList<mpq_t>& terms){{' + '\n\tMatrix<mpz_t> _T1({0}.Rows, {0}.Columns);' + 'Matrix<mpz_t> _T2({0}.Rows, {0}.Columns);mpz_t term;mpz_init(term);').format(self.varName, len(exprList), funcName=algName, funcDesc=algDesc)
+		self.Code = ('{funcDesc}void {funcName}(const Matrix<mpz_t>& {0}, MPList<mpq_t>& terms){{' + '\n\tMatrix<mpz_t> _T1({0}.Rows, {0}.Columns);' + 'Matrix<mpz_t> _T2({0}.Rows, {0}.Columns);mpz_t term, _t1, _t2;mpz_inits(term, _t1, _t2, NULL);').format(self.varName, len(exprList), funcName=algName, funcDesc=algDesc)
 		
 		# handle shorthand
 		powerPattern = re.compile('%s\\d+' % self.varName)
@@ -90,13 +91,17 @@ class Compiler:
 		# compile expressions
 		for i,expr in enumerate(exprList):
 			self.availableTempMatrices = [('_T%d' % (n + 1)) for n in reversed(range(self.numTempMatrices))] # pop to reserve; push to release
+			self.traceTempUsed = False
 			self.nameStack = []
 			self.Code += '\n\t// %s\n\t' % expr # adds comment of expression before code
 			root = ast.parse(expr, mode='single')
 			w = self.walk(root) # walk may add to self.Code (through addTempMatrix), so store returned code temporarily before appending to self.Code
 			self.Code += w
 			lastMatrix = self.nameStack.pop()
-			self.Code += '%s.Trace(term);mpq_set_z(terms[%d], term);' % (lastMatrix, i)
+			if self.traceTempUsed: # lastMatrix in this case should be _t1 (a trace scalar)
+				self.Code += 'mpq_set_z(terms[%d], _t1);' % (i,)
+			else:
+				self.Code += '%s.Trace(term);mpq_set_z(terms[%d], term);' % (lastMatrix, i)
 		self.Code = self.Code.replace(';', ';\n\t') # indent and space properly
 		self.Code += '\n}'
 	
@@ -114,10 +119,13 @@ class Compiler:
 			# evalUnaryOp
 		elif type(node) is ast.Call:
 			name = node.func.id
-			if name != 'd':
-				print('Unrecognized Call %s' % name)
 			code += self.walk(node.args[0])
-			code += self.diag()
+			if name == 'd':
+				code += self.diag()
+			elif name == 'tr':
+				code += self.trace()
+			else:
+				print('Unrecognized Call %s' % name)
 		else: 
 			for c in ast.iter_child_nodes(node):
 				code += self.walk(c)
@@ -140,8 +148,23 @@ class Compiler:
 		self.nameStack.append(temp)
 		self.tryReleaseTempMatrix(operand)
 		return '%s.GetDiagonal(%s);' % (operand, temp)
+
+	def trace(self):
+		if self.traceTempUsed:
+			temp = '_t2'
+		else:
+			temp = '_t1'
+			self.traceTempUsed = True
+		operand = self.nameStack.pop()
+		self.nameStack.append(temp)
+		self.tryReleaseTempMatrix(operand)
+		return "%s.Trace(%s);" % (operand, temp)
 	
 	def evalBinOp(self, binop):
+		if type(binop) is ast.Mult and self.nameStack[-1][:2] == '_t':
+			# scalar trace multiplication
+			r = self.nameStack.pop()
+			return 'mpz_mul({0}, {0}, {1});'.format(self.nameStack[-1], r)
 		t,l,r = self.binopSetup()
 		if type(binop) is ast.Mult:
 			# Note: scaling a matrix by a constant is not supported
